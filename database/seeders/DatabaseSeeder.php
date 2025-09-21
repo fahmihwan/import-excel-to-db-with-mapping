@@ -33,7 +33,17 @@ class DatabaseSeeder extends Seeder
 
         RealisationProjectionUpdate::create([
             'realisation_projection_id' => 1, // must exist in realisation_and_projections
-            'document_type'      => 'Feasibility Report',
+            'document_type'      => 'proyeksi',
+            'document_version'   => 'v1.0',
+            'reference_document' => 'FR-2025-001',
+            'date'               => Carbon::parse('2025-01-10'),
+            'notes'              => 'Initial feasibility study document.',
+            'file'               => 'feasibility_report_v1.pdf',
+        ]);
+
+        RealisationProjectionUpdate::create([
+            'realisation_projection_id' => 1, // must exist in realisation_and_projections
+            'document_type'      => 'proyeksi',
             'document_version'   => 'v1.0',
             'reference_document' => 'FR-2025-001',
             'date'               => Carbon::parse('2025-01-10'),

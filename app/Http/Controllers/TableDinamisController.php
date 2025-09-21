@@ -16,10 +16,9 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class TableDinamisController extends Controller
 {
 
-    public function home()
+    public function toll_roads()
     {
         $realisation_projection_update_id = 1;
-
         // headers -> array
         $headerRow = ProjectionTollRoad::selectRaw('year, quartal, month, col_position')
             ->groupBy('month', 'year', 'quartal', 'col_position')
@@ -173,114 +172,10 @@ class TableDinamisController extends Controller
         }
 
         // return $final_results;
-        return view('welcome', [
+        return view('toll_roads', [
             'attributes'    => $attributesCol,
             'headers'       => $headerRow,
             'results'       => $results,
-            'final_results' => $final_results
-        ]);
-    }
-
-    public function homeV4() //hampir fix, EXCLUDE MERGE
-    {
-
-        $realisation_projection_update_id = 1;
-
-        // get headers
-        $headerRow = ProjectionTollRoad::selectRaw('year, quartal, month,col_position',)
-            ->groupBy('month', 'year', 'quartal', 'col_position')
-            ->where('realisation_projection_update_id', $realisation_projection_update_id)
-            ->orderBy('col_position') // opsional
-            ->get()->toArray();
-
-
-
-        //get attributes data column
-        $attributesCol = ProjectionTollRoad::query()
-            ->select('row_position', 'attribute')
-            ->where('realisation_projection_update_id', $realisation_projection_update_id)
-            ->distinct()
-            ->orderBy('row_position')
-            ->orderBy('attribute')
-            ->get();
-
-        // CARI QUARTAL
-
-        // get all results by id
-        $results = ProjectionTollRoad::where('realisation_projection_update_id', $realisation_projection_update_id)
-            ->select('col_position', 'row_position', 'value', 'quartal', 'month')
-            ->orderBy('col_position', 'asc')->get();
-
-
-        $final_results = $attributesCol->map(function ($attr) use ($results) {
-
-
-            $result_data = $results->filter(function ($r) use ($attr) {
-                return $r->row_position == $attr->row_position; //mapping berdasarkan position
-
-            })->filter(function ($f) use ($attr) { //mapping COLSPAN 
-                if ($attr->attribute == '- Pendapatan Tol Triwulanan (Rp Milliar)') { //jika triwulan, untuk Q1 dll nilai kosong gausah di teruskan, karena untuk COLSPAN (merge column)
-                    return $f->quartal == 'FY'  || $f->value != '';
-                } else if ($attr->attribute == '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)') {
-                    return $f->quartal == 'FY'  || $f->value != '';
-                } else if ($attr->attribute == '- Pendapatan Tol Tahunan (Rp Milliar)') {
-                    return $f->quartal == 'FY';
-                } else {
-                    return $f;
-                }
-            })->map((function ($res) use ($attr) {
-
-                $colspan = 0;
-
-                if ($attr->attribute == '- Pendapatan Tol Triwulanan (Rp Milliar)') { //jika triwulan, untuk Q1 dll nilai kosong gausah di teruskan, karena untuk COLSPAN (merge column)
-                    if ($res->quartal != 'FY') {
-                        $colspan = 3;
-                    }
-                } else if ($attr->attribute == '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)') {
-                    if ($res->quartal != 'FY') {
-                        $colspan = 3;
-                    }
-                } else if ($attr->attribute == '- Pendapatan Tol Tahunan (Rp Milliar)') {
-                    // === LOGIC TAHUNAN: satu Q di antara FY jadi colspan 12 ===
-
-                    if ($res->quartal === 'FY') {
-
-                        // buka segmen: Q pertama setelah ini yang akan trigger
-                    }
-                    // (kalau belum ketemu Q lalu muncul FY lagi, gate tetap true dan reset segmen berikutnya otomatis)
-                } else {
-                    $colspan = 0;
-                }
-
-
-
-
-                return [
-                    "col_position" => $res->col_position,
-                    "row_position" => $res->row_position,
-                    "value" => $res->value,
-                    "quartal" => $res->quartal,
-                    'colspan' => $colspan,
-                ];
-            }))->values()->toArray();
-
-
-            return [
-                'quartal' => $attr->quartal,
-                'row_position'      => $attr->row_position,
-                'attribute'     => $attr->attribute,
-                'results'  => $result_data,
-            ];
-        });
-
-        return $final_results;
-
-
-
-        return view('welcome', [
-            'attributes' => $attributesCol,
-            'headers' => $headerRow,
-            'results' => $results,
             'final_results' => $final_results
         ]);
     }
@@ -289,8 +184,6 @@ class TableDinamisController extends Controller
     // untuk saat startRow dan endRow itukan di muali dari  11 sampai 24 ya, dan di mulai nya dari kolom A, 
     // saya ingin di langsung mencari dari cell yang ada kalimat "TAHUN", kalau sudah ketemua nanti baru di pakai untuk batasan
     // jadi "TAHUN" nanti sebagai startRow dan startCol nya
-
-
     public function store_import(Request $request)
     {
         /**
@@ -470,7 +363,7 @@ class TableDinamisController extends Controller
 
 
         // --- ekstraksi data (kolom → baris) ---
-        
+
         $data = [];
         for ($col = $startColIndex; $col <= $endColIndex; $col++) {
             $colData = [];
@@ -486,7 +379,7 @@ class TableDinamisController extends Controller
         if ($totalHeader < 1) {
             $totalHeader = 1;
         }
-        
+
         $result = [];
 
         for ($i = 1; $i < count($data); $i++) {
@@ -546,433 +439,167 @@ class TableDinamisController extends Controller
 
 
 
+    public function non_plts()
+    {
+        $realisation_projection_update_id = 1;
+        // headers -> array
+        $headerRow = ProjectionTollRoad::selectRaw('year, quartal, month, col_position')
+            ->groupBy('month', 'year', 'quartal', 'col_position')
+            ->where('realisation_projection_update_id', $realisation_projection_update_id)
+            ->orderBy('col_position')
+            ->get()
+            ->toArray();
 
-    // public function store_import(Request $request)
-    // {
-    //     $validated =  $request->validate([
-    //         'file' => 'required|mimes:xlsx,xls,csv,pdf,doc,docx|max:2048',
-    //     ]);
+        // attributes -> array
+        $attributesCol = ProjectionTollRoad::query()
+            ->select('row_position', 'attribute')
+            ->where('realisation_projection_update_id', $realisation_projection_update_id)
+            ->distinct()
+            ->orderBy('row_position')
+            ->orderBy('attribute')
+            ->get()
+            ->toArray();
 
-    //     $file = $validated['file'];
-    //     $spreadsheet = IOFactory::load($file->getRealPath());
+        // results -> array
+        $results = ProjectionTollRoad::where('realisation_projection_update_id', $realisation_projection_update_id)
+            ->select('col_position', 'row_position', 'cell_position', 'value', 'quartal', 'month')
+            ->orderBy('col_position', 'asc')
+            ->get()
+            ->toArray();
 
-    //     $sheet = $spreadsheet->getSheetByName('Realisasi');
+        // index results per row_position
+        $resultsByRow = [];
+        foreach ($results as $r) {
+            $rp = (string) $r['row_position'];
+            if (!isset($resultsByRow[$rp])) $resultsByRow[$rp] = [];
+            $resultsByRow[$rp][] = $r;
+        }
 
-    //     function getLastDataColIndex(
-    //         Worksheet $sheet,
-    //         int $startRow,
-    //         int $endRow,
-    //         int $startColIndex = 1
-    //     ): int {
-    //         $highestColIdx = Coordinate::columnIndexFromString($sheet->getHighestColumn());
-    //         for ($c = $highestColIdx; $c >= $startColIndex; $c--) {
-    //             $col = Coordinate::stringFromColumnIndex($c);
-    //             $colVals = $sheet->rangeToArray("{$col}{$startRow}:{$col}{$endRow}", null, true, false, false);
+        $final_results = [];
 
-    //             foreach ($colVals as $rowArr) {
-    //                 $v = $rowArr[0] ?? null;
-    //                 if ($v !== null && trim((string)$v) !== '') return $c;
-    //             }
-    //         }
-    //         return $startColIndex;
-    //     }
+        foreach ($attributesCol as $attr) {
+            $rowPos    = (string) $attr['row_position'];
+            $attribute = (string) $attr['attribute'];
 
+            $rows = $resultsByRow[$rowPos] ?? [];
 
-    //     $startRow = 11;
-    //     $endRow   = 24;
+            // --- filter (tanpa in_array, pakai switch) ---
+            $filtered = [];
+            foreach ($rows as $f) {
+                $quartal = $f['quartal'];
+                $value   = $f['value'];
 
-    //     $endColIndex = getLastDataColIndex($sheet, $startRow, $endRow, 1); // mulai dari kolom A
-    //     $data = [];
+                switch ($attribute) {
+                    case '- Pendapatan Tol Triwulanan (Rp Milliar)':
+                    case '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)':
+                        // FY lolos; selain FY hanya yang bernilai
+                        if ($quartal === 'FY' || ($value !== '' && $value !== null)) {
+                            $filtered[] = $f;
+                        }
+                        break;
 
-    //     // loop kolom dulu (kiri ke kanan)
-    //     for ($col = 1; $col <= $endColIndex; $col++) {
-    //         $colData = [];
+                    case '- Pendapatan Tol Tahunan (Rp Milliar)':
+                        if ($f['quartal'] == "FY") {
+                            $filtered[] = $f;
+                        }
+                        break;
+                    case '- Biaya Operasional & Pemeliharaan Tahunan (Rp Milliar)':
+                        if ($f['quartal'] == "FY") {
+                            $filtered[] = $f;
+                        }
+                        break;
+                    default:
+                        $filtered[] = $f;
+                }
+            }
 
-    //         // dalam tiap kolom, ambil baris 11–14 (atas ke bawah)
-    //         for ($row = $startRow; $row <= $endRow; $row++) {
-    //             $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
-    //             $colData[] = $cell->getValue();
-    //         }
+            // --- map + hitung colspan ---
+            $result_data = [];
+            foreach ($filtered as $res) {
+                $quartal = $res['quartal'];
+                $colspan = 0;
 
-    //         $data[] = $colData;
-    //     }
+                switch ($attribute) {
+                    case '- Pendapatan Tol Triwulanan (Rp Milliar)':
+                    case '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)':
+                        if ($quartal !== 'FY') {
+                            $colspan = 3;
+                        }
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'cell_position' => $res['cell_position'],
+                            'value'        => $res['value'],
+                            'quartal'      => $quartal,
+                            'colspan'      => $colspan,
+                        ];
+                        break;
 
-
-    //     $headerAttribut = $data[0]; // baris pertama
-    //     $totalHeader = count($headerAttribut) - 3; //ambil total header : exclude tahun, bulan, null
-    //     $result = [];
-    //     $row_position = 0;
-    //     $col_position = 1;
-
-
-    //     for ($i = 1; $i < count($data); $i++) {
-    //         $row = $data[$i];
-    //         $year = $row[0];
-    //         $quartal = $row[1];
-
-    //         $month = $row[2];
-
-    //         for ($j = 3; $j < count($headerAttribut); $j++) {
-
-    //             if ($row_position >= $totalHeader) { // untuk nomor urut sesuai attribute yang ada
-    //                 $row_position = 1;
-    //                 $col_position++;
-    //             } else {
-    //                 $row_position++;
-    //             }
-
-    //             $result[] = [
-    //                 'year'      => $year,
-    //                 'quartal'   => $quartal,
-    //                 'month' => $month,
-    //                 'attribute' => $headerAttribut[$j],
-    //                 'value'     => trim((string) $row[$j])  ?? null,
-    //                 'is_show' => false,
-    //                 'row_position' =>  $row_position,
-    //                 'col_position' => $col_position,
-    //                 'realisation_projection_update_id' => 1
-    //             ];
-    //         }
-    //     }
-
-    //     $rows = $result;
-
-    //     // Hitung jumlah kolom dari baris pertama
-    //     $cols = max(1, count($rows[0] ?? []));
-
-    //     // Pakai batas maksimum 1000 tapi tetap aman dari limit sql server (error limit 2100) (pakai margin 80%)
-    //     $maxWanted = 1000;
-    //     $chunkSize = max(100, min($maxWanted, (int) floor((2100 * 0.8) / $cols)));
-
-    //     $x = collect($rows)
-    //         ->chunk($chunkSize)
-    //         ->each(function ($chunk) {
-    //             ProjectionTollRoad::insert($chunk->toArray());
-    //         });
-
-
-    //     return $x;
-    // }
-
-
-
-
-
-    // public function store_import_fix_but_not_row(Request $request)
-    // {
-    //     $validated =  $request->validate([
-    //         'file' => 'required|mimes:xlsx,xls,csv,pdf,doc,docx|max:2048',
-    //     ]);
-
-    //     $file = $validated['file'];
-    //     $spreadsheet = IOFactory::load($file->getRealPath());
-
-    //     $sheet = $spreadsheet->getSheetByName('Realisasi');
-
-    //     function getLastDataColIndex(
-    //         Worksheet $sheet,
-    //         int $startRow,
-    //         int $endRow,
-    //         int $startColIndex = 1
-    //     ): int {
-    //         $highestColIdx = Coordinate::columnIndexFromString($sheet->getHighestColumn());
-    //         for ($c = $highestColIdx; $c >= $startColIndex; $c--) {
-    //             $col = Coordinate::stringFromColumnIndex($c);
-    //             $colVals = $sheet->rangeToArray("{$col}{$startRow}:{$col}{$endRow}", null, true, false, false);
-
-    //             foreach ($colVals as $rowArr) {
-    //                 $v = $rowArr[0] ?? null;
-    //                 if ($v !== null && trim((string)$v) !== '') return $c;
-    //             }
-    //         }
-    //         return $startColIndex;
-    //     }
-
-
-    //     $startRow = 11;
-    //     $endRow   = 24;
-
-    //     $endColIndex = getLastDataColIndex($sheet, $startRow, $endRow, 1); // mulai dari kolom A
-    //     $data = [];
-
-    //     // loop kolom dulu (kiri ke kanan)
-    //     for ($col = 1; $col <= $endColIndex; $col++) {
-    //         $colData = [];
-
-    //         // dalam tiap kolom, ambil baris 11–14 (atas ke bawah)
-    //         for ($row = $startRow; $row <= $endRow; $row++) {
-    //             $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
-    //             $colData[] = $cell->getValue();
-    //         }
-
-    //         $data[] = $colData;
-    //     }
+                    case '- Pendapatan Tol Tahunan (Rp Milliar)': //MERGE 12 COL / 12 TAHUN
+                        $colspan = 0;
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'cell_position' => $res['cell_position'],
+                            'value'        => $res['value'],
+                            'quartal'      => $quartal,
+                            'colspan'      => $colspan,
+                        ];
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'cell_position' => $res['cell_position'],
+                            'value'        => '',
+                            'quartal'      => 'MERGE',
+                            'colspan'      => 12,
+                        ];
+                        break;
+                    case '- Biaya Operasional & Pemeliharaan Tahunan (Rp Milliar)':
+                        $colspan = 0;
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'value'        => $res['value'],
+                            'cell_position' => $res['cell_position'],
+                            'quartal'      => $quartal,
+                            'colspan'      => $colspan,
+                        ];
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'cell_position' => $res['cell_position'],
+                            'value'        => '',
+                            'quartal'      => 'MERGE',
+                            'colspan'      => 12,
+                        ];
+                        break;
+                    default:
+                        $colspan = 0;
+                        $result_data[] = [
+                            'col_position' => $res['col_position'],
+                            'row_position' => $res['row_position'],
+                            'value'        => $res['value'],
+                            'cell_position' => $res['cell_position'],
+                            'quartal'      => $quartal,
+                            'colspan'      => $colspan,
+                        ];
+                }
+            }
 
 
-    //     $headerAttribut = $data[0]; // baris pertama
-    //     $totalHeader = count($headerAttribut) - 3; //ambil total header : exclude tahun, bulan, null
-    //     $result = [];
-    //     $row_position = 0;
-    //     $col_position = 1;
+            $final_results[] = [
+                'row_position' => $rowPos,
+                'attribute'    => $attribute,
+                'results'      => array_values($result_data),
+            ];
+        }
 
-
-    //     for ($i = 1; $i < count($data); $i++) {
-    //         $row = $data[$i];
-    //         $year = $row[0];
-    //         $quartal = $row[1];
-
-    //         $month = $row[2];
-
-    //         for ($j = 3; $j < count($headerAttribut); $j++) {
-
-    //             if ($row_position >= $totalHeader) { // untuk nomor urut sesuai attribute yang ada
-    //                 $row_position = 1;
-    //                 $col_position++;
-    //             } else {
-    //                 $row_position++;
-    //             }
-
-    //             $result[] = [
-    //                 'year'      => $year,
-    //                 'quartal'   => $quartal,
-    //                 'month' => $month,
-    //                 'attribute' => $headerAttribut[$j],
-    //                 'value'     => trim((string) $row[$j])  ?? null,
-    //                 'is_show' => false,
-    //                 'row_position' =>  $row_position,
-    //                 'col_position' => $col_position,
-    //                 'realisation_projection_update_id' => 1
-    //             ];
-    //         }
-    //     }
-
-    //     $rows = $result;
-
-    //     // Hitung jumlah kolom dari baris pertama
-    //     $cols = max(1, count($rows[0] ?? []));
-
-    //     // Pakai batas maksimum 1000 tapi tetap aman dari limit sql server (error limit 2100) (pakai margin 80%)
-    //     $maxWanted = 1000;
-    //     $chunkSize = max(100, min($maxWanted, (int) floor((2100 * 0.8) / $cols)));
-
-    //     $x = collect($rows)
-    //         ->chunk($chunkSize)
-    //         ->each(function ($chunk) {
-    //             ProjectionTollRoad::insert($chunk->toArray());
-    //         });
-
-
-    //     return $x;
-    // }
+        // return $final_results;
+        return view('non_plts', [
+            'attributes'    => $attributesCol,
+            'headers'       => $headerRow,
+            'results'       => $results,
+            'final_results' => []
+        ]);
+    }
 }
-
-    
-
-
-
-
-//     public function store_import_hardcode_row(Request $request)
-//     {
-//         $validated =  $request->validate([
-//             'file' => 'required|mimes:xlsx,xls,csv,pdf,doc,docx|max:2048',
-//         ]);
-
-//         $file = $validated['file'];
-//         $spreadsheet = IOFactory::load($file->getRealPath());
-
-//         $sheet = $spreadsheet->getSheetByName('Realisasi');
-
-
-
-//         $startRow = 11;
-//         $endRow   = 24;
-
-//         $endColIndex = $this->getLastDataColIndex($sheet, $startRow, $endRow, 1); // mulai dari kolom A
-
-//         $data = [];
-
-//         // loop kolom dulu (kiri ke kanan)
-//         for ($col = 1; $col <= $endColIndex; $col++) {
-//             $colData = [];
-
-//             // dalam tiap kolom, ambil baris 11–14 (atas ke bawah)
-//             for ($row = $startRow; $row <= $endRow; $row++) {
-//                 $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
-//                 $colData[] = $cell->getValue();
-//             }
-
-//             $data[] = $colData;
-//         }
-
-
-//         $headerAttribut = $data[0]; // baris pertama
-//         $totalHeader = count($headerAttribut) - 3; //ambil total header : exclude tahun, bulan, null
-//         $result = [];
-//         $row_position = 0;
-//         $col_position = 1;
-
-
-//         for ($i = 1; $i < count($data); $i++) {
-//             $row = $data[$i];
-//             $year = $row[0];
-//             $quartal = $row[1];
-
-//             $month = $row[2];
-
-//             for ($j = 3; $j < count($headerAttribut); $j++) {
-
-//                 if ($row_position >= $totalHeader) { // untuk nomor urut sesuai attribute yang ada
-//                     $row_position = 1;
-//                     $col_position++;
-//                 } else {
-//                     $row_position++;
-//                 }
-
-//                 $result[] = [
-//                     'year'      => $year,
-//                     'quartal'   => $quartal,
-//                     'month' => $month,
-//                     'attribute' => $headerAttribut[$j],
-//                     'value'     => trim((string) $row[$j])  ?? null,
-//                     'is_show' => false,
-//                     'row_position' =>  $row_position,
-//                     'col_position' => $col_position,
-//                     'realisation_projection_update_id' => 1
-//                 ];
-//             }
-//         }
-
-//         $rows = $result;
-
-//         // Hitung jumlah kolom dari baris pertama
-//         $cols = max(1, count($rows[0] ?? []));
-
-//         // Pakai batas maksimum 1000 tapi tetap aman dari limit sql server (error limit 2100) (pakai margin 80%)
-//         $maxWanted = 1000;
-//         $chunkSize = max(100, min($maxWanted, (int) floor((2100 * 0.8) / $cols)));
-
-//         $x = collect($rows)
-//             ->chunk($chunkSize)
-//             ->each(function ($chunk) {
-//                 ProjectionTollRoad::insert($chunk->toArray());
-//             });
-
-
-//         return $x;
-//     }
-
-//     public function store_import_hardcode_col_row(Request $request)
-//     {
-
-//         $validated =  $request->validate([
-//             'file' => 'required|mimes:xlsx,xls,csv,pdf,doc,docx|max:2048',
-//         ]);
-
-//         $file = $validated['file'];
-//         $spreadsheet = IOFactory::load($file->getRealPath());
-
-//         $sheet = $spreadsheet->getSheetByName('Realisasi');
-
-
-//         $startRow = 11;
-//         $endRow   = 24;
-//         // $endCol   = 'MA'; //harus otomatis ngambil data col 
-//         $endCol = "N";
-//         $endColIndex = Coordinate::columnIndexFromString($endCol);
-
-//         $data = [];
-
-//         // loop kolom dulu (kiri ke kanan)
-//         for ($col = 1; $col <= $endColIndex; $col++) {
-//             $colData = [];
-
-//             // dalam tiap kolom, ambil baris 11–14 (atas ke bawah)
-//             for ($row = $startRow; $row <= $endRow; $row++) {
-//                 $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col) . $row);
-//                 $colData[] = $cell->getValue();
-//             }
-
-//             $data[] = $colData;
-//         }
-
-
-//         $headerAttribut = $data[0]; // baris pertama
-//         $totalHeader = count($headerAttribut) - 3; //ambil total header : exclude tahun, bulan, null
-//         $result = [];
-//         $row_position = 0;
-//         $col_position = 1;
-
-
-//         for ($i = 1; $i < count($data); $i++) {
-//             $row = $data[$i];
-//             $year = $row[0];
-//             $quartal = $row[1];
-
-//             $month = $row[2];
-
-//             for ($j = 3; $j < count($headerAttribut); $j++) {
-
-//                 if ($row_position >= $totalHeader) { // untuk nomor urut sesuai attribute yang ada
-//                     $row_position = 1;
-//                     $col_position++;
-//                 } else {
-//                     $row_position++;
-//                 }
-
-//                 $result[] = [
-//                     'year'      => $year,
-//                     'quartal'   => $quartal,
-//                     'month' => $month,
-//                     'attribute' => $headerAttribut[$j],
-//                     'value'     => (string) $row[$j] ?? null,
-//                     'is_show' => false,
-//                     'row_position' =>  $row_position,
-//                     'col_position' => $col_position,
-//                     'realisation_projection_update_id' => 1
-//                 ];
-//             }
-//         }
-
-
-//         foreach ($result as $x) {
-//             ProjectionTollRoad::create($x);
-//         }
-
-//         return $result;
-//     }
-// }
-
-
-
-    // function numToLetters($num)
-    //     {
-    //         $letters = '';
-    //         while ($num > 0) {
-    //             $mod = ($num - 1) % 26;
-    //             $letters = chr(65 + $mod) . $letters;
-    //             $num = (int)(($num - $mod) / 26);
-    //         }
-    //         return $letters;
-    //     }
-
-    //     function lettersToNum($letters)
-    //     {
-    //         $num = 0;
-    //         $len = strlen($letters);
-    //         for ($i = 0; $i < $len; $i++) {
-    //             $num = $num * 26 + (ord($letters[$i]) - 64);
-    //         }
-    //         return $num;
-    //     }
-
-
-        // numToLetters(1);   // A
-        // numToLetters(26);  // Z
-        // numToLetters(27);  // AA
-        // numToLetters(52);  // AZ
-        // numToLetters(326); // MN
-
-        // lettersToNum("A");   // 1
-        // lettersToNum("Z");   // 26
-        // lettersToNum("AA");  // 27
-        // lettersToNum("MN");  // 326
