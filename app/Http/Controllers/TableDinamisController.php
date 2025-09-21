@@ -399,22 +399,24 @@ class TableDinamisController extends Controller
         $funcReadCell = function (Worksheet $sheet, int $colIndex, int $row) {
             $coord = Coordinate::stringFromColumnIndex($colIndex) . $row;
             $cell  = $sheet->getCell($coord);
-            $val   = $cell->getValue();
+
+
+            $val = $cell->getFormattedValue();
 
             // RichText → string
-            if ($val instanceof RichText) {
-                $val = $val->getPlainText();
-            }
+            // if ($val instanceof RichText) {
+            //     $val = $val->getPlainText();
+            // }
 
-            // Jika formula, hitung nilainya
-            if (is_string($val) && strlen($val) > 0 && $val[0] === '=') {
-                try {
-                    $val = $cell->getCalculatedValue(); // ambil hasil formula
-                } catch (\Exception $e) {
-                    // fallback kalau formula gagal dihitung
-                    $val = null;
-                }
-            }
+            // // Jika formula, hitung nilainya
+            // if (is_string($val) && strlen($val) > 0 && $val[0] === '=') {
+            //     try {
+            //         $val = $cell->getCalculatedValue(); // ambil hasil formula
+            //     } catch (\Exception $e) {
+            //         // fallback kalau formula gagal dihitung
+            //         $val = null;
+            //     }
+            // }
 
             // Normalisasi kosong
             if ($val === null) return null;
@@ -443,7 +445,7 @@ class TableDinamisController extends Controller
         $spreadsheet = IOFactory::load($file->getRealPath());
 
         // baca tab spreadsheet
-        $sheet = $spreadsheet->getSheetByName('Realisasi');
+        $sheet = $spreadsheet->getSheetByName('Proyeksi Originasi');
         if (!$sheet) {
             abort(422, 'Sheet "Realisasi" tidak ditemukan.');
         }
@@ -468,6 +470,7 @@ class TableDinamisController extends Controller
 
 
         // --- ekstraksi data (kolom → baris) ---
+        
         $data = [];
         for ($col = $startColIndex; $col <= $endColIndex; $col++) {
             $colData = [];
@@ -483,7 +486,7 @@ class TableDinamisController extends Controller
         if ($totalHeader < 1) {
             $totalHeader = 1;
         }
-
+        
         $result = [];
 
         for ($i = 1; $i < count($data); $i++) {
