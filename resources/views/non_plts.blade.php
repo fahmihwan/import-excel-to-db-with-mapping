@@ -39,7 +39,7 @@
         </div>
         <div class="row">
             <div class="col-md-5">
-                <form action="data" method="POST" enctype="multipart/form-data">
+                <form action="data-non-plts" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div style="display: flex; align-items: center; " class="mb-4">
                         <div class="me-2">
@@ -57,30 +57,17 @@
             </div>
         </div>
         <div class="row">
-
             <table class="table table-bordered border-primary">
                 <thead>
-                    <tr>
-                        <th>Tahun</th>
-                        @foreach ($headers as $item)
-                            <th class="{{ $item['quartal'] == 'FY' ? 'bg-primary text-white' : '' }}">
-                                {{ $item['year'] }}
-                            </th>
-                        @endforeach
+                    <tr rowspan="1">
+                        <th rowspan="2">Parameter</th>
+                        <th rowspan="2">Satuan</th>
+                        <th colspan="{{ count($headers) }}">Update Proyeksi Tahunan</th>
                     </tr>
                     <tr>
-                        <th></th>
-                        @foreach ($headers as $item)
-                            <th class="{{ $item['quartal'] == 'FY' ? 'bg-primary text-white' : '' }}">
-                                {{ $item['quartal'] }}
-                            </th>
-                        @endforeach
-                    </tr>
-                    <tr>
-                        <th>Bulan</th>
                         @foreach ($headers as $item)
                             <th>
-                                {{ $item['month'] }}
+                                {{ $item['year'] }}
                             </th>
                         @endforeach
                     </tr>
@@ -89,13 +76,14 @@
                     @foreach ($final_results as $item)
                         <tr>
                             <th>{{ $item['attribute'] }}</th>
+                            <th>{{ $item['unit'] }}</th>
                             @foreach ($item['results'] as $r)
-                                <th colspan="{{ $r['colspan'] }}">
+                                <th>
                                     <span style="color: blue">{{ $r['value'] }}</span> <small
                                         style="color:Red">{{ $r['cell_position'] }}</small>
 
                                     <br>
-                                    <s>{{ $r['col_position'] }} {{ $r['row_position'] }}</s>
+                                    {{-- <s>{{ $r['col_position'] }} {{ $r['row_position'] }}</s> --}}
                                 </th>
                             @endforeach
                         </tr>
