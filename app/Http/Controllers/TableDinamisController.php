@@ -431,12 +431,13 @@ class TableDinamisController extends Controller
     {
         $realisation_projection_update_id = 1;
         // headers -> array
-        $headerRow = ProjectionElectriciteNonPlts::selectRaw('year, unit, col_position')
-            ->groupBy('year', 'unit', 'col_position')
+        $headerRow = ProjectionElectriciteNonPlts::selectRaw('year, col_position')
+            ->groupBy('year', 'col_position')
             ->where('realisation_projection_update_id', $realisation_projection_update_id)
             ->orderBy('col_position')
             ->get()
             ->toArray();
+        // return $headerRow;
 
 
         // attributes -> array
@@ -464,6 +465,7 @@ class TableDinamisController extends Controller
             if (!isset($resultsByRow[$rp])) $resultsByRow[$rp] = [];
             $resultsByRow[$rp][] = $r;
         }
+
 
         $final_results = [];
 
@@ -579,7 +581,6 @@ class TableDinamisController extends Controller
                 }
             }
 
-
             $final_results[] = [
                 'row_position' => $rowPos,
                 'attribute'    => $attribute,
@@ -588,8 +589,6 @@ class TableDinamisController extends Controller
             ];
         }
 
-
-        
         return view('non_plts', [
             'attributes'    => $attributesCol,
             'headers'       => $headerRow,
