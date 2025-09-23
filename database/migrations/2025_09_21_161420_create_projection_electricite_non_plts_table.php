@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('projection_electricite_non_plts', function (Blueprint $table) {
             $table->id();
-            $table->string('year', 255)->nullable(); // NOT NULL
+            $table->string('year', 255)->nullable(); // NOT NUL
+            $table->string('month', 255)->nullable(); // NOT NULL
             $table->string('unit', 255)->nullable(); // NOT NULL
 
             $table->string('attribute', 255)->nullable(); // NOT NULL

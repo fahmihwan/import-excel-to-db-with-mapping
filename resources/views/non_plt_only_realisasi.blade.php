@@ -19,7 +19,7 @@
 
         <div class="row my-5">
             <div class="col-md-12">
-                <h1>Non PLTS</h1>
+                <h1>Non PLTS (Realisasi)</h1>
             </div>
         </div>
         <div class="row mb-5">
@@ -62,12 +62,18 @@
                     <tr rowspan="1">
                         <th rowspan="2">Parameter</th>
                         <th rowspan="2">Satuan</th>
-                        <th colspan="{{ count($headers) }}">Update Proyeksi Tahunan</th>
+                        @foreach ($headers as $item)
+                            @if ($item['year'] != null)
+                                <th colspan="{{ 12 + 3 }}">
+                                    {{ $item['year'] }}
+                                </th>
+                            @endif
+                        @endforeach
                     </tr>
                     <tr>
                         @foreach ($headers as $item)
                             <th>
-                                {{ $item['year'] }}
+                                {{ $item['month'] }}
                             </th>
                         @endforeach
                     </tr>
@@ -81,7 +87,6 @@
                                 <th>
                                     <span style="color: blue">{{ $r['value'] }}</span> <small
                                         style="color:Red">{{ $r['cell_position'] }}</small>
-
                                     <br>
                                     {{-- <s>{{ $r['col_position'] }} {{ $r['row_position'] }}</s> --}}
                                 </th>

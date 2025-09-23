@@ -11,6 +11,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpParser\Node\Stmt\Return_;
+use ReturnTypeWillChange;
 
 class TableDinamisController extends Controller
 {
@@ -429,18 +430,27 @@ class TableDinamisController extends Controller
 
     public function non_plts()
     {
-        $realisation_projection_update_id = 1;
+        $realisation_projection_update_id = 2;
+        $sheetName = 'proyeksi';
+
         // headers -> array
-        $headerRow = ProjectionElectriciteNonPlts::selectRaw('year, col_position')
-            ->groupBy('year', 'col_position')
-            ->where('realisation_projection_update_id', $realisation_projection_update_id)
-            ->orderBy('col_position')
-            ->get()
-            ->toArray();
-        // return $headerRow;
+        if ($sheetName == 'realisasi') {
+            $headerRow = ProjectionElectriciteNonPlts::selectRaw('year,month, col_position')
+                ->groupBy('year', 'month', 'col_position')
+                ->where('realisation_projection_update_id', $realisation_projection_update_id)
+                ->orderBy('col_position')
+                ->get()
+                ->toArray();
+        } else if ($sheetName != 'realisasi') {
+            $headerRow = ProjectionElectriciteNonPlts::selectRaw('year, col_position')
+                ->groupBy('year', 'col_position')
+                ->where('realisation_projection_update_id', $realisation_projection_update_id)
+                ->orderBy('col_position')
+                ->get()
+                ->toArray();
+        }
 
 
-        // attributes -> array
         $attributesCol = ProjectionElectriciteNonPlts::query()
             ->select('row_position', 'attribute', 'unit')
             ->where('realisation_projection_update_id', $realisation_projection_update_id)
@@ -450,22 +460,18 @@ class TableDinamisController extends Controller
             ->get()
             ->toArray();
 
-        // results -> array
         $results = ProjectionElectriciteNonPlts::where('realisation_projection_update_id', $realisation_projection_update_id)
             ->select('col_position', 'row_position', 'cell_position', 'value', 'unit')
             ->orderBy('col_position', 'asc')
             ->get()
             ->toArray();
 
-
-        // index results per row_position
         $resultsByRow = [];
         foreach ($results as $r) {
             $rp = (string) $r['row_position'];
             if (!isset($resultsByRow[$rp])) $resultsByRow[$rp] = [];
             $resultsByRow[$rp][] = $r;
         }
-
 
         $final_results = [];
 
@@ -475,110 +481,17 @@ class TableDinamisController extends Controller
             $attribute = (string) $attr['attribute'];
             $unit = (string) $attr['unit'];
 
-            $rows = $resultsByRow[$rowPos] ?? [];
+            $filtered  = $resultsByRow[$rowPos] ?? [];
 
-            // --- filter (tanpa in_array, pakai switch) ---
-            $filtered = [];
-            foreach ($rows as $f) {
-                // $quartal = $f['quartal'];
-                // $value   = $f['value'];
-
-                switch ($attribute) {
-                    // case '- Pendapatan Tol Triwulanan (Rp Milliar)':
-                    // case '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)':
-                    //     // FY lolos; selain FY hanya yang bernilai
-                    //     if ($quartal === 'FY' || ($value !== '' && $value !== null)) {
-                    //         $filtered[] = $f;
-                    //     }
-                    //     break;
-
-                    // case '- Pendapatan Tol Tahunan (Rp Milliar)':
-                    //     if ($f['quartal'] == "FY") {
-                    //         $filtered[] = $f;
-                    //     }
-                    //     break;
-                    // case '- Biaya Operasional & Pemeliharaan Tahunan (Rp Milliar)':
-                    //     if ($f['quartal'] == "FY") {
-                    //         $filtered[] = $f;
-                    //     }
-                    //     break;
-                    default:
-                        $filtered[] = $f;
-                }
-            }
-            // return $filtered;
-
-            // --- map + hitung colspan ---
+            // --- map ---
             $result_data = [];
             foreach ($filtered as $res) {
-                // $quartal = $res['quartal'];
-                // $colspan = 0;
-
-                switch ($attribute) {
-                    // case '- Pendapatan Tol Triwulanan (Rp Milliar)':
-                    // case '- Biaya Operasional & Pemeliharaan Trwiulanan (Rp Milliar)':
-                    //     if ($quartal !== 'FY') {
-                    //         $colspan = 3;
-                    //     }
-                    //     $result_data[] = [
-                    //         'col_position' => $res['col_position'],
-                    //         'row_position' => $res['row_position'],
-                    //         'cell_position' => $res['cell_position'],
-                    //         'value'        => $res['value'],
-                    //         'quartal'      => $quartal,
-                    //         'colspan'      => $colspan,
-                    //     ];
-                    //     break;
-
-                    // case '- Pendapatan Tol Tahunan (Rp Milliar)': //MERGE 12 COL / 12 TAHUN
-                    //     $colspan = 0;
-                    //     $result_data[] = [
-                    //         'col_position' => $res['col_position'],
-                    //         'row_position' => $res['row_position'],
-                    //         'cell_position' => $res['cell_position'],
-                    //         'value'        => $res['value'],
-                    //         'quartal'      => $quartal,
-                    //         'colspan'      => $colspan,
-                    //     ];
-                    //     $result_data[] = [
-                    //         'col_position' => $res['col_position'],
-                    //         'row_position' => $res['row_position'],
-                    //         'cell_position' => $res['cell_position'],
-                    //         'value'        => '',
-                    //         'quartal'      => 'MERGE',
-                    //         'colspan'      => 12,
-                    //     ];
-                    //     break;
-                    // case '- Biaya Operasional & Pemeliharaan Tahunan (Rp Milliar)':
-                    //     $colspan = 0;
-                    //     $result_data[] = [
-                    //         'col_position' => $res['col_position'],
-                    //         'row_position' => $res['row_position'],
-                    //         'value'        => $res['value'],
-                    //         'cell_position' => $res['cell_position'],
-                    //         'quartal'      => $quartal,
-                    //         'colspan'      => $colspan,
-                    //     ];
-                    //     $result_data[] = [
-                    //         'col_position' => $res['col_position'],
-                    //         'row_position' => $res['row_position'],
-                    //         'cell_position' => $res['cell_position'],
-                    //         'value'        => '',
-                    //         'quartal'      => 'MERGE',
-                    //         'colspan'      => 12,
-                    //     ];
-                    //     break;
-                    default:
-                        $colspan = 0;
-                        $result_data[] = [
-                            'col_position' => $res['col_position'],
-                            'row_position' => $res['row_position'],
-                            'value'        => $res['value'],
-                            'cell_position' => $res['cell_position'],
-                            // 'quartal'      => $quartal,
-                            // 'colspan'      => $colspan,
-                        ];
-                }
+                $result_data[] = [
+                    'col_position' => $res['col_position'],
+                    'row_position' => $res['row_position'],
+                    'value'        => $res['value'],
+                    'cell_position' => $res['cell_position'],
+                ];
             }
 
             $final_results[] = [
@@ -589,16 +502,33 @@ class TableDinamisController extends Controller
             ];
         }
 
-        return view('non_plts', [
-            'attributes'    => $attributesCol,
-            'headers'       => $headerRow,
-            'results'       => $results,
-            'final_results' => $final_results
-        ]);
+
+
+        if ($sheetName == 'realisasi') {
+            return view('non_plt_only_realisasi', [
+                'attributes'    => $attributesCol,
+                'headers'       => $headerRow,
+                'results'       => $results,
+                'final_results' => $final_results
+            ]);
+        } else if ($sheetName != 'realisasi') {
+            return view('non_plts_exclude_realisasi', [
+                'attributes'    => $attributesCol,
+                'headers'       => $headerRow,
+                'results'       => $results,
+                'final_results' => $final_results
+            ]);
+        }
     }
+
+
+
 
     public function store_import_non_plts(Request $request)
     {
+        $mappingFk = [];
+        $mappingFk['realisation_projection_update_id'] = 2; //ganti aja jadi realisation nanti
+        $sheetParam = 'Proyeksi_nonPLTS'; //sheetName for EWS
         /**
          * Cari cell berisi teks (case-insensitive, trim) tanpa getCellByColumnAndRow.
          * Return: [row, colIndex] atau null jika tidak ketemu.
@@ -736,7 +666,7 @@ class TableDinamisController extends Controller
         $spreadsheet = IOFactory::load($file->getRealPath());
 
         // baca tab spreadsheet
-        $sheet = $spreadsheet->getSheetByName('Proyeksi_nonPLTS');
+        $sheet = $spreadsheet->getSheetByName($sheetParam);
         if (!$sheet) {
             abort(422, 'Sheet "Proyeksi_nonPLTS" tidak ditemukan.');
         }
@@ -792,15 +722,31 @@ class TableDinamisController extends Controller
         for ($i = 1; $i < count($data); $i++) {
             $row = $data[$i];
 
-            $year   = $row[1] ?? null; //artinya tahun ada di baris ke 2
+            $month = null;
+            $year = null;
+            if ($sheetParam == 'Realisasi_nonPLTS') {
+                $year   = $row[0] ?? null;
+                $month   = $row[1] ?? null; //artinya tahun ada di baris ke 2
+            } else if ($sheetParam != 'Realisasi_nonPLTS') {
+                $year   = $row[1] ?? null; //artinya tahun ada di baris ke 2
+            }
 
-            // $j di mulai dari 2, karena hanya mengambil dari baris ke 2 saja
-            for ($j = 2; $j < count($headerAttribut); $j++) {
+
+            // $j di mulai dari 1, karena hanya mengambil dari baris ke 2 saja
+            for ($j = 1; $j < count($headerAttribut); $j++) {
 
                 $val = $row[$j] ?? null;
                 $val = ($val === null) ? null : trim((string)$val);
 
-                if ($year != null && $headerAttribut[$j] != null && $headerAttribut[$j] != 'xx') { //penanda itu file dari kita ada xx di cell B60
+
+                $cekIsSuccess = false;
+                if ($sheetParam ==  'Realisasi_nonPLTS') {
+                    $month != null ? $cekIsSuccess = true : $cekIsSuccess = false;
+                } else if ($sheetParam !=  'Realisasi_nonPLTS') {
+                    $year != null ? $cekIsSuccess = true : $cekIsSuccess = false;
+                }
+
+                if ($cekIsSuccess && $headerAttribut[$j] != null && $headerAttribut[$j] != 'xx') { //penanda itu file dari kita ada xx di cell B60
 
                     // >>> koordinat cell aslinya (mis. "B11")
                     $actualColIndex = $startColIndex + $i;   // i=1 berarti kolom di kanan start
@@ -809,26 +755,37 @@ class TableDinamisController extends Controller
 
                     $position =  $funcConvertionAlphabetToNumber($cellRef);
 
-                    $result[] = [
-                        'year'      => $year,
-                        // 'quartal'   => $quartal,
-                        // 'month'     => $month,
-                        'unit' => $headerUnit[$j] ?? null,
-                        'attribute' => $headerAttribut[$j] ?? null,
-                        'value'     => $val,
-                        'is_show'   => false,
-                        'row_position' =>  $position['row_position'],
-                        'col_position'  =>  $position['col_position'],
-                        'cell_position' => $cellRef,
-                        'realisation_projection_update_id' => 1
-                    ];
+
+                    if ($sheetParam == 'Realisasi_nonPLTS') {
+                        $result[] = array_merge([
+                            'year'     => $year,
+                            'month'     => $month,
+                            'unit' => $headerUnit[$j] ?? null,
+                            'attribute' => $headerAttribut[$j] ?? null,
+                            'value'     => $val,
+                            'is_show'   => false,
+                            'row_position' =>  $position['row_position'],
+                            'col_position'  =>  $position['col_position'],
+                            'cell_position' => $cellRef,
+                        ], $mappingFk);
+                    } else if ($sheetParam != 'Realisasi_nonPLTS') {
+                        $result[] = array_merge([
+                            'year'      => $year,
+                            'unit' => $headerUnit[$j] ?? null,
+                            'attribute' => $headerAttribut[$j] ?? null,
+                            'value'     => $val,
+                            'is_show'   => false,
+                            'row_position' =>  $position['row_position'],
+                            'col_position'  =>  $position['col_position'],
+                            'cell_position' => $cellRef,
+                        ], $mappingFk);
+                    }
                 }
             }
         }
 
         $rows = $result;
 
-        // return $rows;
         // Hitung jumlah kolom dari satu row insert (untuk batas parameter)
         $cols = max(1, count($rows[0] ?? []));
 
